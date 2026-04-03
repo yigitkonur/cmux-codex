@@ -1,5 +1,5 @@
 /**
- * codex-cmux Installer
+ * cmux-codex Installer
  */
 
 import * as p from '@clack/prompts';
@@ -30,7 +30,7 @@ function getDistDir(): string {
 }
 
 export async function run(): Promise<void> {
-  p.intro(pc.bgCyan(pc.black(' codex-cmux setup ')));
+  p.intro(pc.bgCyan(pc.black(' cmux-codex setup ')));
 
   const spin = p.spinner();
   spin.start('Detecting environment...');
@@ -119,7 +119,7 @@ export async function run(): Promise<void> {
     if (!profileContent.includes('cmux-local.sock')) {
       const symBlock = [
         '',
-        '# codex-cmux: symlink cmux socket (spaces in path break SSH -R)',
+        '# cmux-codex: symlink cmux socket (spaces in path break SSH -R)',
         'if [ -S "$CMUX_SOCKET_PATH" ]; then',
         '  ln -sf "$CMUX_SOCKET_PATH" /tmp/cmux-local.sock 2>/dev/null',
         'fi',
@@ -150,7 +150,7 @@ export async function run(): Promise<void> {
         if (!sshContent.includes('/tmp/cmux-fwd.sock')) {
           const block = [
             '',
-            `# codex-cmux: socket + env forwarding for sidebar integration`,
+            `# cmux-codex: socket + env forwarding for sidebar integration`,
             `Host ${host}`,
             `    RemoteForward /tmp/cmux-fwd.sock /tmp/cmux-local.sock`,
             `    SendEnv CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID`,
@@ -180,15 +180,15 @@ export async function run(): Promise<void> {
   }
 
   if (verify.allPassed) {
-    p.outro(pc.green('codex-cmux is installed and ready!'));
+    p.outro(pc.green('cmux-codex is installed and ready!'));
   } else {
     const failCount = verify.checks.filter((c) => !c.passed).length;
-    p.outro(pc.yellow(`Installed with ${failCount} warning(s). Run "codex-cmux status" to check.`));
+    p.outro(pc.yellow(`Installed with ${failCount} warning(s). Run "cmux-codex status" to check.`));
   }
 }
 
 export async function status(): Promise<void> {
-  p.intro(pc.bgCyan(pc.black(' codex-cmux status ')));
+  p.intro(pc.bgCyan(pc.black(' cmux-codex status ')));
   const checks: Array<{ name: string; ok: boolean; detail: string }> = [];
 
   checks.push({ name: 'Handler', ok: existsSync(HANDLER_DEST), detail: existsSync(HANDLER_DEST) ? HANDLER_DEST : 'Not installed' });
@@ -221,7 +221,7 @@ export async function status(): Promise<void> {
   checks.push({
     name: 'Hooks',
     ok: registeredEvents.length > 0,
-    detail: registeredEvents.length > 0 ? `${registeredEvents.length} events: ${registeredEvents.join(', ')}` : 'No codex-cmux hooks registered',
+    detail: registeredEvents.length > 0 ? `${registeredEvents.length} events: ${registeredEvents.join(', ')}` : 'No cmux-codex hooks registered',
   });
 
   const lines = checks.map((c) => `${c.ok ? pc.green('\u2713') : pc.red('\u2717')} ${c.name}: ${pc.dim(c.detail)}`);
@@ -232,8 +232,8 @@ export async function status(): Promise<void> {
 }
 
 export async function uninstall(): Promise<void> {
-  p.intro(pc.bgRed(pc.white(' codex-cmux uninstall ')));
-  const confirmed = await p.confirm({ message: 'Remove all codex-cmux hooks and configuration?', initialValue: false });
+  p.intro(pc.bgRed(pc.white(' cmux-codex uninstall ')));
+  const confirmed = await p.confirm({ message: 'Remove all cmux-codex hooks and configuration?', initialValue: false });
   if (p.isCancel(confirmed) || !confirmed) { p.cancel('Cancelled.'); return; }
 
   const codex = detectCodex();
@@ -245,13 +245,13 @@ export async function uninstall(): Promise<void> {
   }
   try { const tmp = '/tmp/codex-cmux'; if (existsSync(tmp)) rmSync(tmp, { recursive: true, force: true }); } catch {}
 
-  p.outro(pc.green('codex-cmux has been uninstalled.'));
+  p.outro(pc.green('cmux-codex has been uninstalled.'));
 }
 
 export async function test(): Promise<void> {
-  p.intro(pc.bgMagenta(pc.white(' codex-cmux test ')));
+  p.intro(pc.bgMagenta(pc.white(' cmux-codex test ')));
 
-  if (!existsSync(HANDLER_DEST)) { p.cancel('Handler not installed. Run "codex-cmux setup" first.'); return; }
+  if (!existsSync(HANDLER_DEST)) { p.cancel('Handler not installed. Run "cmux-codex setup" first.'); return; }
   const cmux = detectCmux();
   if (!cmux.available) { p.cancel('cmux is not available.'); return; }
 

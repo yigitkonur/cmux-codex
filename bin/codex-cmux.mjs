@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * codex-cmux CLI entry point.
- * Usage: codex-cmux [setup|status|uninstall|test|help]
+ * cmux-codex CLI entry point.
+ * Usage: cmux-codex [setup|status|uninstall|test|help]
  */
 
 import { run, status, uninstall, test } from '../dist/installer.mjs';
@@ -32,7 +32,7 @@ switch (command) {
   case '--help':
   case '-h':
     console.log(`
-codex-cmux — cmux sidebar integration for OpenAI Codex CLI
+cmux-codex — cmux sidebar integration for OpenAI Codex CLI
 
 Commands:
   setup       Interactive setup wizard (default)
@@ -44,6 +44,6 @@ Commands:
     break;
 
   default:
-    console.error(`Unknown command: ${command}. Run "codex-cmux help" for usage.`);
+    console.error(`Unknown command: ${command}. Run "cmux-codex help" for usage.`);
     process.exit(1);
 }

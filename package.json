@@ -1,10 +1,10 @@
 {
-  "name": "codex-cmux",
+  "name": "cmux-codex",
   "version": "1.0.0",
   "description": "cmux sidebar integration for OpenAI Codex CLI",
   "type": "module",
   "bin": {
-    "codex-cmux": "bin/codex-cmux.mjs"
+    "cmux-codex": "bin/codex-cmux.mjs"
   },
   "main": "dist/handler.cjs",
   "scripts": {

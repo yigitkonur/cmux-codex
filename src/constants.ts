@@ -1,4 +1,4 @@
-/** Centralized constants for codex-cmux. */
+/** Centralized constants for cmux-codex. */
 
 export const AGENT_KEY = 'codex';
 export const NOTIFICATION_TITLE = 'Codex';

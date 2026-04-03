@@ -1,4 +1,4 @@
-# codex-cmux
+# cmux-codex
 
 ## Build
 

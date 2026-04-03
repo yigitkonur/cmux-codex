@@ -1,6 +1,6 @@
 /**
- * Merge codex-cmux hooks into ~/.codex/hooks.json.
- * Identifies codex-cmux entries by command path containing 'codex-cmux'.
+ * Merge cmux-codex hooks into ~/.codex/hooks.json.
+ * Identifies cmux-codex entries by command path containing 'codex-cmux'.
  */
 
 import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
@@ -38,7 +38,7 @@ export function mergeHooksIntoFile(
       const existingEntries = (existingHooks[eventName] as Array<Record<string, unknown>>) || [];
       const newEntries = newHooks[eventName] || [];
 
-      // Separate user entries from codex-cmux entries
+      // Separate user entries from cmux-codex entries
       const userEntries = existingEntries.filter((e) => {
         const hooks = e['hooks'] as Array<Record<string, string>> | undefined;
         if (!hooks) return true;
@@ -61,7 +61,7 @@ export function mergeHooksIntoFile(
         }
       }
 
-      // User entries first, then codex-cmux entries
+      // User entries first, then cmux-codex entries
       mergedHooks[eventName] = [...userEntries, ...newEntries];
     }
 

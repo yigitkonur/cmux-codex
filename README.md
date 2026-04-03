@@ -1,8 +1,8 @@
-# codex-cmux
+# cmux-codex
 
 real-time cmux sidebar integration for OpenAI Codex CLI. status pills, progress bars, bash command logs, focus-aware desktop notifications, git integration — all wired through codex's 5 hook events and cmux's unix socket.
 
-sibling project to [cmux-claude-pro](https://github.com/yigitkonur/cmux-claude-pro) (16 hooks for Claude Code). same architecture, adapted for codex's simpler hook system.
+sibling project to [cmux-claude-code](https://github.com/yigitkonur/cmux-claude-code) (16 hooks for Claude Code). same architecture, adapted for codex's simpler hook system.
 
 ![status](https://img.shields.io/badge/status-production--ready-brightgreen) ![hooks](https://img.shields.io/badge/hooks-5%20events-blue) ![latency](https://img.shields.io/badge/socket%20latency-~8ms-yellow) ![node](https://img.shields.io/badge/node-20%2B-green) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
@@ -89,7 +89,7 @@ codex's hook system is simpler. these claude code features have no codex equival
 ### one-liner (macOS & Linux)
 
 ```bash
-rm -rf /tmp/codex-cmux && cd /tmp && git clone https://github.com/yigitkonur/codex-cmux.git && cd codex-cmux && npm install && npm run build && bash install.sh
+rm -rf /tmp/cmux-codex && cd /tmp && git clone https://github.com/yigitkonur/cmux-codex.git && cd cmux-codex && npm install && npm run build && bash install.sh
 ```
 
 the installer automatically:
@@ -104,8 +104,8 @@ the installer automatically:
 
 ```bash
 # 1. clone
-git clone https://github.com/yigitkonur/codex-cmux.git
-cd codex-cmux
+git clone https://github.com/yigitkonur/cmux-codex.git
+cd cmux-codex
 
 # 2. build (needs node 20+)
 npm install
@@ -120,7 +120,7 @@ bash install.sh
 ### interactive installer (alternative)
 
 ```bash
-npx codex-cmux setup
+npx cmux-codex setup
 ```
 
 TUI wizard with feature selection, SSH setup, and remote deployment.
@@ -157,7 +157,7 @@ paste this into a fresh codex session:
 ```
 run this test step by step. wait 2 seconds between each step and announce each step number.
 
-step 1 — run: echo "hello from codex-cmux sidebar test"
+step 1 — run: echo "hello from cmux-codex sidebar test"
 step 2 — run: ls -la /tmp/
 step 3 — run: echo "step 3 done" && date
 step 4 — run: git status 2>/dev/null || echo "not a git repo"
@@ -197,11 +197,11 @@ step 5 — run: echo "all 5 steps complete — check your cmux sidebar!"
 }
 ```
 
-## coexistence with cmux-claude-pro
+## coexistence with cmux-claude-code
 
 both can run in the same cmux workspace simultaneously:
 
-| | codex-cmux | cmux-claude-pro |
+| | cmux-codex | cmux-claude-code |
 |---|---|---|
 | status key | `codex` | `claude_code` |
 | temp dir | `/tmp/codex-cmux/` | `/tmp/cc-cmux/` |
@@ -212,7 +212,7 @@ each gets its own status pill, progress bar, and log entries in the sidebar.
 
 ## ssh / remote machines
 
-when you ssh into a remote machine and run codex there, codex-cmux updates **your local sidebar** with the remote session's status.
+when you ssh into a remote machine and run codex there, cmux-codex updates **your local sidebar** with the remote session's status.
 
 ### how it works
 
@@ -254,7 +254,7 @@ if [ -S /tmp/cmux-fwd.sock ] && [ -n "$SSH_CONNECTION" ]; then
 fi
 ```
 
-or use the interactive installer: `codex-cmux setup` handles SSH config automatically.
+or use the interactive installer: `cmux-codex setup` handles SSH config automatically.
 
 ## how it works
 
@@ -364,7 +364,7 @@ rm -rf ~/.codex-cmux/
 # 3. restart codex
 ```
 
-or use the interactive uninstaller: `codex-cmux uninstall`
+or use the interactive uninstaller: `cmux-codex uninstall`
 
 ## troubleshooting
 

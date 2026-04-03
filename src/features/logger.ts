@@ -1,5 +1,5 @@
 /**
- * Sidebar log formatting for codex-cmux.
+ * Sidebar log formatting for cmux-codex.
  * Currently Codex only fires PostToolUse for Bash.
  */
 

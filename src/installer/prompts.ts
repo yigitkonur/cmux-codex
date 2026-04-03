@@ -37,7 +37,7 @@ export async function runPrompts(
 
   if (p.isCancel(features)) return { features: [], notifications: { onStop: true, onError: true }, confirmed: false };
 
-  const confirmed = await p.confirm({ message: 'Install codex-cmux?', initialValue: true });
+  const confirmed = await p.confirm({ message: 'Install cmux-codex?', initialValue: true });
   if (p.isCancel(confirmed)) return { features: features as string[], notifications: { onStop: true, onError: true }, confirmed: false };
 
   return {

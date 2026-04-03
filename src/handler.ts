@@ -1,5 +1,5 @@
 /**
- * codex-cmux main handler — single entry point invoked by Codex hooks.
+ * cmux-codex main handler — single entry point invoked by Codex hooks.
  *
  * 5 events: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop.
  * Always exits 0 — must NEVER block Codex.

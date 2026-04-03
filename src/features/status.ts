@@ -1,5 +1,5 @@
 /**
- * Status priority system for the cmux sidebar (codex-cmux).
+ * Status priority system for the cmux sidebar (cmux-codex).
  * 5 phases: error > working > thinking > done > ready.
  */
 

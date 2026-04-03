@@ -1,5 +1,5 @@
 #!/bin/bash
-# codex-cmux installer
+# cmux-codex installer
 # works on macOS and Linux, local and remote (SSH) machines.
 # on machines without cmux, the handler simply no-ops (exits 0 silently).
 set -e
@@ -9,7 +9,7 @@ CODEX_DIR="$HOME/.codex"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
-echo "  codex-cmux"
+echo "  cmux-codex"
 echo "  =========="
 echo ""
 
@@ -17,7 +17,7 @@ echo ""
 
 # Verify node 20+
 if ! command -v node &>/dev/null; then
-  echo "  [!!] node not found. codex-cmux requires Node.js 20+."
+  echo "  [!!] node not found. cmux-codex requires Node.js 20+."
   exit 1
 fi
 
@@ -160,7 +160,7 @@ added = 0
 
 for event, entries in new_hooks.items():
     if event in existing:
-        # Remove old codex-cmux entries, keep user entries
+        # Remove old cmux-codex entries, keep user entries
         user_entries = [e for e in existing[event]
                        if not any(h.get('command', '').find('codex-cmux') >= 0
                                   for h in e.get('hooks', []))]
