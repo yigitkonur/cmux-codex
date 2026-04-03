@@ -210,51 +210,55 @@ both can run in the same cmux workspace simultaneously:
 
 each gets its own status pill, progress bar, and log entries in the sidebar.
 
-## ssh / remote machines
+## ssh / remote machines (`cmux ssh`)
 
-when you ssh into a remote machine and run codex there, cmux-codex updates **your local sidebar** with the remote session's status.
+when you run `cmux ssh myserver` and start codex on the remote, the handler detects the TCP relay and uses V2 JSON-RPC to update your local cmux sidebar.
+
+**important:** use `cmux ssh`, not plain `ssh`. cmux ssh sets up a TCP relay with HMAC authentication that our handler talks through. plain ssh has no cmux integration.
 
 ### how it works
 
 ```
-local cmux sidebar ← unix socket ← SSH -R tunnel ← remote handler ← codex hooks
+local cmux sidebar ← V2 JSON-RPC ← TCP relay (HMAC auth) ← cmuxd-remote ← handler ← codex hooks
 ```
 
-### setup
+### what you see over SSH
 
-**local machine** — add to `~/.zshrc`:
+| channel | what it shows | example |
+|---|---|---|
+| **tab title** | current status + action | `Working: Bash: npm test` |
+| **workspace color** | state indicator | blue/gold/green/red |
+| **workspace title** | git branch + progress | `main* \| 3 tools 23%` |
+
+plus: desktop notifications (focus-aware), workspace pinned while working, unpinned when done.
+
+### event → SSH visual mapping
+
+| hook event | tab title | ws color | ws title | extras |
+|---|---|---|---|---|
+| SessionStart | `Ready` | green | `main*` | clear notifs, mark read |
+| UserPromptSubmit | `Thinking...` | gold | (keep) | pin |
+| PreToolUse | `Working: Bash: npm test` | blue (1st) | `main* \| 3t 23%` | progress |
+| PostToolUse | (no change) | (no change) | (git refresh) | — |
+| Stop (SILENT) | `Done` | green | `main*` | unpin, notify (zero stdout) |
+
+### SSH limitations
+
+these only work locally — cmux hasn't exposed them in V2 yet ([tracked in manaflow-ai/cmux#2558](https://github.com/manaflow-ai/cmux/issues/2558)):
+
+| feature | local | SSH |
+|---|---|---|
+| sidebar status pills (SF icons) | ✅ | ❌ tab title instead |
+| sidebar progress bar | ✅ | ❌ workspace title instead |
+| sidebar activity log | ✅ | ❌ dropped |
+| sidebar git branch badge | ✅ | ❌ workspace title instead |
+| crash recovery (PID) | ✅ | ❌ dropped |
+
+### install on remote (ssh-remote branch)
+
 ```bash
-if [ -S "$CMUX_SOCKET_PATH" ]; then
-  ln -sf "$CMUX_SOCKET_PATH" /tmp/cmux-local.sock 2>/dev/null
-fi
+rm -rf /tmp/cmux-codex && cd /tmp && git clone -b ssh-remote https://github.com/yigitkonur/cmux-codex.git && cd cmux-codex && npm install && npm run build && bash install.sh
 ```
-
-**local machine** — add to `~/.ssh/config`:
-```
-Host myserver
-  RemoteForward /tmp/cmux-fwd.sock /tmp/cmux-local.sock
-  SendEnv CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID
-```
-
-**remote machine:**
-```bash
-# accept env vars + allow socket reuse
-echo "AcceptEnv CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID" | sudo tee -a /etc/ssh/sshd_config
-echo "StreamLocalBindUnlink yes" | sudo tee -a /etc/ssh/sshd_config
-sudo systemctl restart sshd  # Linux
-# or: sudo launchctl kickstart -k system/com.openssh.sshd  # macOS
-
-# deploy handler
-scp ~/.codex-cmux/handler.cjs myserver:~/.codex-cmux/
-
-# add to remote ~/.zshrc:
-if [ -S /tmp/cmux-fwd.sock ] && [ -n "$SSH_CONNECTION" ]; then
-  export CMUX_SOCKET_PATH=/tmp/cmux-fwd.sock
-  [ -z "$CMUX_WORKSPACE_ID" ] && [ -f /tmp/cmux-fwd.env ] && . /tmp/cmux-fwd.env
-fi
-```
-
-or use the interactive installer: `cmux-codex setup` handles SSH config automatically.
 
 ## how it works
 
