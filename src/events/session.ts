@@ -14,7 +14,7 @@ import { STATUS_DISPLAY, formatStatusValue } from '../features/status.js';
 import { detectGitInfo } from '../features/git.js';
 import { LOG_SOURCE } from '../features/logger.js';
 import { AGENT_KEY, META_HOST, META_REMOTE_CWD, STALE_SESSION_MS } from '../constants.js';
-import { V2_COLORS, formatWorkspaceTitle } from '../cmux/v2-emitter.js';
+import { V2_COLORS, formatWorkspaceStatus } from '../cmux/v2-emitter.js';
 import { StateManager } from '../state/manager.js';
 import { CmuxSocket } from '../cmux/socket.js';
 import { CmuxCommands } from '../cmux/commands.js';
@@ -138,14 +138,19 @@ async function onSessionStartV2(
 
   // V2 initialization calls
   const calls: V2RpcCall[] = [];
-  calls.push(v2.setTabTitle('Ready'));
+
+  // Tab title: stable project name (set once)
+  const projectName = event.cwd ? event.cwd.split('/').filter(Boolean).pop() || 'remote' : 'remote';
+  calls.push(v2.setTabTitle(projectName));
+
+  // Workspace color: green (ready)
   calls.push(v2.setWorkspaceColor(V2_COLORS.ready));
+
+  // Workspace title: live status "Ready | main*"
+  calls.push(v2.setWorkspaceTitle(formatWorkspaceStatus('Ready', undefined, s.gitBranch, s.gitDirty)));
+
   calls.push(v2.clearNotifications());
   calls.push(v2.markRead());
-
-  if (config.features.gitIntegration && s.gitBranch) {
-    calls.push(v2.setWorkspaceTitle(formatWorkspaceTitle(s.gitBranch, s.gitDirty)));
-  }
 
   socket.fireV2All(calls);
 

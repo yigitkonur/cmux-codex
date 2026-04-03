@@ -12,7 +12,7 @@ import type { UserPromptSubmitInput, StopInput } from './types.js';
 import type { V2RpcCall } from '../cmux/v2-emitter.js';
 import { statusCmd, notifyIfUnfocused } from '../cmux/helpers.js';
 import { NOTIFICATION_TITLE, TURN_HISTORY_MAX } from '../constants.js';
-import { V2_COLORS, formatWorkspaceTitle } from '../cmux/v2-emitter.js';
+import { V2_COLORS, formatWorkspaceStatus } from '../cmux/v2-emitter.js';
 
 export async function onUserPromptSubmit(
   event: UserPromptSubmitInput,
@@ -117,8 +117,11 @@ async function onUserPromptSubmitV2(
   });
 
   const calls: V2RpcCall[] = [];
-  calls.push(v2.setTabTitle('Thinking...'));
+  // Tab title: DON'T CHANGE (keep project name)
+  // Workspace color: gold (phase transition)
   calls.push(v2.setWorkspaceColor(V2_COLORS.thinking));
+  // Workspace title: live status
+  calls.push(v2.setWorkspaceTitle('Thinking...'));
   calls.push(v2.clearNotifications());
   calls.push(v2.markRead());
   calls.push(v2.pin());
@@ -142,17 +145,15 @@ async function onStopV2(
     st.isInTurn = false;
   });
 
+  const s = state.read();
   const calls: V2RpcCall[] = [];
-  calls.push(v2.setTabTitle('Done'));
+  // Tab title: DON'T CHANGE (keep project name)
+  // Workspace color: green (phase transition)
   calls.push(v2.setWorkspaceColor(V2_COLORS.done));
+  // Workspace title: "Done | main*"
+  calls.push(v2.setWorkspaceTitle(formatWorkspaceStatus('Done', undefined, s?.gitBranch, s?.gitDirty)));
   calls.push(v2.clearNotifications());
   calls.push(v2.unpin());
-
-  // Git branch in workspace title
-  const s = state.read();
-  if (s && s.gitBranch) {
-    calls.push(v2.setWorkspaceTitle(formatWorkspaceTitle(s.gitBranch, s.gitDirty)));
-  }
 
   socket.fireV2All(calls);
 

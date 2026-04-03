@@ -1,15 +1,10 @@
 /**
  * V2Emitter — direct V2 JSON-RPC call builder for SSH/TCP relay sessions.
  *
- * Over SSH, cmux's sidebar V1 primitives (set_status, log, set_progress) are
- * unavailable. This emitter builds V2 RPC calls that use the confirmed-working
- * methods: tab.action, workspace.action, workspace.rename, notification.*,
- * surface.trigger_flash, system.identify.
- *
- * Channel strategy:
- *   Tab title       = phase + current action ("Working: Bash: npm test")
- *   Workspace color = state (green/gold/blue/orange/purple/red)
- *   Workspace title = git branch + progress ("main* | 5 tools 33%")
+ * Channel strategy (revised):
+ *   Tab title       = session topic (stable, set once — like AI workspace name)
+ *   Workspace title = live status line (changes frequently: "Working: Bash: npm test | 3 tools 23%")
+ *   Workspace color = phase color (only changes on phase transitions, not every tool)
  *   Notifications   = done/error/permission alerts
  *   Mark unread     = attention for permission/error
  *   Flash           = urgent visual attention
@@ -33,7 +28,7 @@ export const V2_COLORS: Record<string, string> = {
 };
 
 export class V2Emitter {
-  // ---- Tab title (primary status line) ----
+  // ---- Tab title (stable session topic — set rarely) ----
 
   setTabTitle(title: string): V2RpcCall {
     return { method: 'tab.action', params: { action: 'rename', title } };
@@ -43,7 +38,7 @@ export class V2Emitter {
     return { method: 'tab.action', params: { action: 'clear_name' } };
   }
 
-  // ---- Workspace color (state indicator) ----
+  // ---- Workspace color (phase indicator — only on transitions) ----
 
   setWorkspaceColor(color: string): V2RpcCall {
     return { method: 'workspace.action', params: { action: 'set-color', color } };
@@ -53,7 +48,7 @@ export class V2Emitter {
     return { method: 'workspace.action', params: { action: 'clear-color' } };
   }
 
-  // ---- Workspace title (progress + git branch) ----
+  // ---- Workspace title (live status line — changes frequently) ----
 
   setWorkspaceTitle(title: string): V2RpcCall {
     return { method: 'workspace.rename', params: { title } };
@@ -98,7 +93,7 @@ export class V2Emitter {
     return { method: 'surface.trigger_flash', params: { surface_id: surfaceId } };
   }
 
-  // ---- Workspace pin (keep visible while working) ----
+  // ---- Workspace pin ----
 
   pin(): V2RpcCall {
     return { method: 'workspace.action', params: { action: 'pin' } };
@@ -118,25 +113,39 @@ export class V2Emitter {
 // ---- Helpers ----
 
 /**
- * Format workspace title combining git branch and progress.
- * During work: "main* | 5 tools 33%"
- * On done: "main*"
- * No git: "5 tools 33%"
+ * Format the live workspace title status line.
+ * During work: "Working: Bash: npm test | main* | 5 tools 33%"
+ * On done: "Done | main*"
+ * Ready: "Ready | main*"
  */
-export function formatWorkspaceTitle(
-  gitBranch: string | null,
-  gitDirty: boolean,
+export function formatWorkspaceStatus(
+  phase: string,
+  detail?: string,
+  gitBranch?: string | null,
+  gitDirty?: boolean,
   toolCount?: number,
   progress?: number,
 ): string {
   const parts: string[] = [];
+
+  // Phase + detail
+  if (detail) {
+    parts.push(`${phase}: ${detail}`);
+  } else {
+    parts.push(phase);
+  }
+
+  // Git branch
   if (gitBranch) {
     parts.push(gitDirty ? `${gitBranch}*` : gitBranch);
   }
+
+  // Progress
   if (toolCount !== undefined && toolCount > 0 && progress !== undefined) {
     const pct = Math.round(progress * 100);
     const label = toolCount === 1 ? '1 tool' : `${toolCount} tools`;
     parts.push(`${label} ${pct}%`);
   }
+
   return parts.join(' | ');
 }

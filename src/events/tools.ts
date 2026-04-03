@@ -12,7 +12,7 @@ import { formatToolLog, getLogLevel, LOG_SOURCE } from '../features/logger.js';
 import { calculateProgress, formatProgressLabel } from '../state/progress.js';
 import { detectGitInfo, isGitCommand } from '../features/git.js';
 import { fireStatus } from '../cmux/helpers.js';
-import { V2_COLORS, formatWorkspaceTitle } from '../cmux/v2-emitter.js';
+import { V2_COLORS, formatWorkspaceStatus } from '../cmux/v2-emitter.js';
 import { TOOL_HISTORY_MAX, RESPONSE_TRUNCATE } from '../constants.js';
 
 export async function onPreToolUse(
@@ -137,19 +137,17 @@ async function onPreToolUseV2(
 
     const calls: V2RpcCall[] = [];
     calls.push(v2.clearNotifications());
-    calls.push(v2.setTabTitle(`Working: ${label}`));
+    // Tab title: DON'T CHANGE (keep project name)
 
     // Only set color on thinking → working transition
     if (wasThinking) {
       calls.push(v2.setWorkspaceColor(V2_COLORS.working));
     }
 
-    // Workspace title with git + progress
+    // Workspace title: live status "Working: Bash: npm test | main* | 5 tools 33%"
     const progress = calculateProgress(s.toolUseCount, s.turnToolCounts);
-    const wsTitle = formatWorkspaceTitle(s.gitBranch, s.gitDirty, s.toolUseCount, progress);
-    if (wsTitle) {
-      calls.push(v2.setWorkspaceTitle(wsTitle));
-    }
+    const wsTitle = formatWorkspaceStatus('Working', label, s.gitBranch, s.gitDirty, s.toolUseCount, progress);
+    calls.push(v2.setWorkspaceTitle(wsTitle));
 
     socket.fireV2All(calls);
   });
@@ -184,7 +182,9 @@ async function onPostToolUseV2(
           s.gitDirty = gitInfo.dirty;
         });
         if (gitInfo.branch) {
-          socket.fireV2(v2.setWorkspaceTitle(formatWorkspaceTitle(gitInfo.branch, gitInfo.dirty)));
+          const s2 = state.read();
+          const progress = calculateProgress(s2.toolUseCount, s2.turnToolCounts);
+          socket.fireV2(v2.setWorkspaceTitle(formatWorkspaceStatus('Working', undefined, gitInfo.branch, gitInfo.dirty, s2.toolUseCount, progress)));
         }
       } catch {}
     }
