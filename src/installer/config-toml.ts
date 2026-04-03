@@ -1,13 +1,13 @@
 /**
  * Safe TOML editor for enabling codex_hooks in config.toml.
  * Line-based editing — never full rewrite, never corrupt existing content.
+ * Uses anchored multiline regexes to avoid matching comments or inline text.
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 export function ensureHooksEnabled(configTomlPath: string): { alreadyEnabled: boolean; modified: boolean } {
-  // Create directory if needed
   mkdirSync(dirname(configTomlPath), { recursive: true });
 
   if (!existsSync(configTomlPath)) {
@@ -17,14 +17,14 @@ export function ensureHooksEnabled(configTomlPath: string): { alreadyEnabled: bo
 
   const content = readFileSync(configTomlPath, 'utf-8');
 
-  // Already enabled
-  if (/codex_hooks\s*=\s*true/i.test(content)) {
+  // Already enabled (anchored to line start, skip comments)
+  if (/^codex_hooks\s*=\s*true/m.test(content)) {
     return { alreadyEnabled: true, modified: false };
   }
 
-  // Has the key but set to false — flip it
-  if (/codex_hooks\s*=\s*false/i.test(content)) {
-    const updated = content.replace(/codex_hooks\s*=\s*false/i, 'codex_hooks = true');
+  // Has the key but set to false — flip it (anchored to line start)
+  if (/^codex_hooks\s*=\s*false/m.test(content)) {
+    const updated = content.replace(/^codex_hooks\s*=\s*false/m, 'codex_hooks = true');
     writeFileSync(configTomlPath, updated, 'utf-8');
     return { alreadyEnabled: false, modified: true };
   }
@@ -36,7 +36,7 @@ export function ensureHooksEnabled(configTomlPath: string): { alreadyEnabled: bo
     return { alreadyEnabled: false, modified: true };
   }
 
-  // No [features] section at all — append
+  // No [features] section — append
   const newContent = content.trimEnd() + '\n\n[features]\ncodex_hooks = true\n';
   writeFileSync(configTomlPath, newContent, 'utf-8');
   return { alreadyEnabled: false, modified: true };

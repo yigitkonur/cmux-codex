@@ -112,6 +112,73 @@ export async function run(): Promise<void> {
   });
   p.note(verifyLines.join('\n'), 'Verification');
 
+  // Socket symlink for SSH forwarding (spaces in socket path break SSH -R)
+  const shellProfile = join(homedir(), '.zshrc');
+  try {
+    const profileContent = existsSync(shellProfile) ? readFileSync(shellProfile, 'utf-8') : '';
+    if (!profileContent.includes('cmux-local.sock')) {
+      const symBlock = [
+        '',
+        '# codex-cmux: symlink cmux socket (spaces in path break SSH -R)',
+        'if [ -S "$CMUX_SOCKET_PATH" ]; then',
+        '  ln -sf "$CMUX_SOCKET_PATH" /tmp/cmux-local.sock 2>/dev/null',
+        'fi',
+      ].join('\n');
+      writeFileSync(shellProfile, profileContent + symBlock + '\n', 'utf-8');
+      p.log.info('Added cmux socket symlink to ~/.zshrc');
+    }
+  } catch {}
+
+  // Optional SSH remote setup
+  const wantSSH = await p.confirm({
+    message: 'Set up SSH remote integration? (sidebar works over SSH)',
+    initialValue: false,
+  });
+
+  if (!p.isCancel(wantSSH) && wantSSH) {
+    const remoteHost = await p.text({
+      message: 'SSH host name (as in ~/.ssh/config):',
+      placeholder: 'myserver',
+      validate: (v) => (v.trim() ? undefined : 'Host name required'),
+    });
+
+    if (!p.isCancel(remoteHost) && remoteHost) {
+      const host = (remoteHost as string).trim();
+      const sshConfigPath = join(homedir(), '.ssh', 'config');
+      try {
+        let sshContent = existsSync(sshConfigPath) ? readFileSync(sshConfigPath, 'utf-8') : '';
+        if (!sshContent.includes('/tmp/cmux-fwd.sock')) {
+          const block = [
+            '',
+            `# codex-cmux: socket + env forwarding for sidebar integration`,
+            `Host ${host}`,
+            `    RemoteForward /tmp/cmux-fwd.sock /tmp/cmux-local.sock`,
+            `    SendEnv CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID`,
+          ].join('\n');
+          mkdirSync(join(homedir(), '.ssh'), { recursive: true });
+          writeFileSync(sshConfigPath, sshContent + block + '\n', 'utf-8');
+          p.log.info(`Added socket forwarding for ${host} to SSH config`);
+        } else {
+          p.log.info('SSH config already has socket forwarding');
+        }
+      } catch {
+        p.log.warn('Could not update SSH config. Add manually to ~/.ssh/config');
+      }
+
+      // Deploy handler to remote
+      const deployRemote = await p.confirm({ message: `Deploy handler to ${host}?`, initialValue: true });
+      if (!p.isCancel(deployRemote) && deployRemote) {
+        try {
+          execSync(`ssh ${host} 'mkdir -p ~/.codex-cmux'`, { timeout: 10000 });
+          execSync(`scp ~/.codex-cmux/handler.cjs ${host}:~/.codex-cmux/handler.cjs`, { timeout: 30000 });
+          p.log.info(`Handler deployed to ${host}:~/.codex-cmux/handler.cjs`);
+        } catch {
+          p.log.warn(`Could not deploy. Copy manually: scp ~/.codex-cmux/handler.cjs ${host}:~/.codex-cmux/`);
+        }
+      }
+    }
+  }
+
   if (verify.allPassed) {
     p.outro(pc.green('codex-cmux is installed and ready!'));
   } else {
@@ -132,6 +199,30 @@ export async function status(): Promise<void> {
 
   const codex = detectCodex();
   checks.push({ name: 'Codex hooks', ok: codex.hooksEnabled, detail: codex.hooksEnabled ? 'Enabled' : 'Disabled in config.toml' });
+
+  // Check registered hooks
+  let registeredEvents: string[] = [];
+  if (codex.hooksJsonExists) {
+    try {
+      const hooksContent = JSON.parse(readFileSync(codex.hooksJsonPath, 'utf-8'));
+      if (hooksContent?.hooks) {
+        for (const [eventName, entries] of Object.entries(hooksContent.hooks)) {
+          if (Array.isArray(entries)) {
+            const hasCodexCmux = (entries as Record<string, unknown>[]).some((e) => {
+              const h = e['hooks'] as Array<Record<string, string>> | undefined;
+              return h?.some((hook) => typeof hook['command'] === 'string' && hook['command'].includes('codex-cmux'));
+            });
+            if (hasCodexCmux) registeredEvents.push(eventName);
+          }
+        }
+      }
+    } catch {}
+  }
+  checks.push({
+    name: 'Hooks',
+    ok: registeredEvents.length > 0,
+    detail: registeredEvents.length > 0 ? `${registeredEvents.length} events: ${registeredEvents.join(', ')}` : 'No codex-cmux hooks registered',
+  });
 
   const lines = checks.map((c) => `${c.ok ? pc.green('\u2713') : pc.red('\u2717')} ${c.name}: ${pc.dim(c.detail)}`);
   p.note(lines.join('\n'), 'Health Check');

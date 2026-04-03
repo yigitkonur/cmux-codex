@@ -20,6 +20,9 @@ export async function onPreToolUse(
   const { socket, cmd, state, config } = ctx;
   const { tool_name: toolName, tool_input: toolInput } = event;
 
+  // Clear stale notifications when Codex starts working
+  socket.fire(cmd.clearNotifications());
+
   const label = formatToolLabel(toolName, toolInput as Record<string, unknown>);
 
   state.withState((s) => {

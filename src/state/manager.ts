@@ -103,7 +103,7 @@ export class StateManager {
 
   /** Check if a stored PID is still alive. */
   static isPidAlive(pid: number): boolean {
-    if (!pid || pid <= 0) return false;
+    if (!pid || pid <= 1) return false; // Reject init (1) and invalid PIDs
     try {
       process.kill(pid, 0);
       return true;
@@ -123,7 +123,10 @@ export class StateManager {
         const filePath = join(STATE_DIR, entry);
         try {
           const raw = readFileSync(filePath, 'utf-8');
-          results.push({ filePath, state: JSON.parse(raw) as SessionState });
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && typeof parsed.codexPpid === 'number') {
+            results.push({ filePath, state: parsed as SessionState });
+          }
         } catch {}
       }
     } catch {}
