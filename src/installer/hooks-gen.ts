@@ -42,7 +42,7 @@ export function generateHooks(
 
     // Add matchers per Codex spec
     if (eventName === 'SessionStart') {
-      entry.matcher = 'startup|resume';
+      entry.matcher = 'startup|resume|clear';
     } else if (eventName === 'PreToolUse' || eventName === 'PostToolUse') {
       entry.matcher = 'Bash';
     }
