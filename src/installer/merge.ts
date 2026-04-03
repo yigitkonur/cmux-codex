@@ -86,7 +86,7 @@ export function removeCodexCmuxHooks(hooksJsonPath: string): { removed: string[]
 
     for (const [eventName, entries] of Object.entries(hooks)) {
       if (!Array.isArray(entries)) continue;
-      const filtered = entries.filter((e: Record<string, unknown>) => {
+      const filtered = entries.filter((e: any) => {
         const h = e['hooks'] as Array<Record<string, string>> | undefined;
         if (!h) return true;
         return !h.some((hook) => typeof hook['command'] === 'string' && hook['command'].includes('codex-cmux'));
