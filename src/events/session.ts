@@ -9,10 +9,12 @@
 
 import type { HandlerContext } from './context.js';
 import type { SessionStartInput } from './types.js';
+import type { V2RpcCall } from '../cmux/v2-emitter.js';
 import { STATUS_DISPLAY, formatStatusValue } from '../features/status.js';
 import { detectGitInfo } from '../features/git.js';
 import { LOG_SOURCE } from '../features/logger.js';
 import { AGENT_KEY, META_HOST, META_REMOTE_CWD, STALE_SESSION_MS } from '../constants.js';
+import { V2_COLORS, formatWorkspaceTitle } from '../cmux/v2-emitter.js';
 import { StateManager } from '../state/manager.js';
 import { CmuxSocket } from '../cmux/socket.js';
 import { CmuxCommands } from '../cmux/commands.js';
@@ -23,9 +25,11 @@ export async function onSessionStart(
   event: SessionStartInput,
   ctx: HandlerContext,
 ): Promise<void> {
-  const { socket, cmd, state, config, env } = ctx;
+  if (ctx.isTcp) {
+    return onSessionStartV2(event, ctx);
+  }
 
-  // Create and populate initial state
+  const { socket, cmd, state, config, env } = ctx;
   const s = state.createDefault();
   s.sessionId = event.session_id;
   s.workspaceId = env.workspaceId;
@@ -96,6 +100,58 @@ export async function onSessionStart(
   // Clean up stale sessions (dead Codex processes + age-based)
   try {
     cleanStaleSessions(socket, cmd);
+  } catch {}
+
+  try {
+    state.cleanStale(STALE_SESSION_MS);
+  } catch {}
+}
+
+// ---- V2 SSH branch ----
+
+async function onSessionStartV2(
+  event: SessionStartInput,
+  ctx: HandlerContext,
+): Promise<void> {
+  const { socket, v2, state, config } = ctx;
+
+  // Create and populate initial state (same as V1)
+  const s = state.createDefault();
+  s.sessionId = event.session_id;
+  s.workspaceId = ctx.env.workspaceId;
+  s.surfaceId = ctx.env.surfaceId;
+  s.socketPath = ctx.env.socketPath;
+  s.model = event.model ?? null;
+  s.codexPpid = process.ppid || process.pid;
+  s.sessionStartTime = Date.now();
+
+  // Detect git info
+  if (config.features.gitIntegration && event.cwd) {
+    try {
+      const gitInfo = detectGitInfo(event.cwd);
+      s.gitBranch = gitInfo.branch;
+      s.gitDirty = gitInfo.dirty;
+    } catch {}
+  }
+
+  state.write(s);
+
+  // V2 initialization calls
+  const calls: V2RpcCall[] = [];
+  calls.push(v2.setTabTitle('Ready'));
+  calls.push(v2.setWorkspaceColor(V2_COLORS.ready));
+  calls.push(v2.clearNotifications());
+  calls.push(v2.markRead());
+
+  if (config.features.gitIntegration && s.gitBranch) {
+    calls.push(v2.setWorkspaceTitle(formatWorkspaceTitle(s.gitBranch, s.gitDirty)));
+  }
+
+  socket.fireV2All(calls);
+
+  // Clean up stale sessions (same as V1)
+  try {
+    cleanStaleSessions(socket, ctx.cmd);
   } catch {}
 
   try {
