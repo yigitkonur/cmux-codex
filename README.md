@@ -89,11 +89,7 @@ codex's hook system is simpler. these claude code features have no codex equival
 ### one-liner (macOS & Linux)
 
 ```bash
-cd /tmp \
-  && git clone https://github.com/yigitkonur/codex-cmux.git \
-  && cd codex-cmux \
-  && npm install && npm run build \
-  && bash install.sh
+rm -rf /tmp/codex-cmux && cd /tmp && git clone https://github.com/yigitkonur/codex-cmux.git && cd codex-cmux && npm install && npm run build && bash install.sh
 ```
 
 the installer automatically:
@@ -102,7 +98,7 @@ the installer automatically:
 - writes 5 hook events to `~/.codex/hooks.json` (preserving existing hooks)
 - creates a backup at `hooks.json.codex-cmux-backup`
 - verifies handler loads and Stop is silent
-- works on macOS (BSD sed) and Linux (GNU sed)
+- works on macOS and Linux (uses python3, no sed)
 
 ### step by step
 
