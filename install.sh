@@ -84,31 +84,37 @@ else
 fi
 
 # ---- Enable codex hooks in config.toml ----
+# Uses python3 instead of sed — portable across all macOS/Linux versions.
 
 mkdir -p "$CODEX_DIR"
 TOML="$CODEX_DIR/config.toml"
 
-if [ -f "$TOML" ] && grep -q "^codex_hooks.*=.*true" "$TOML" 2>/dev/null; then
-  echo "  [ok] codex_hooks already enabled in config.toml"
-elif [ -f "$TOML" ] && grep -q "^codex_hooks.*=.*false" "$TOML" 2>/dev/null; then
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' 's/^codex_hooks.*=.*false/codex_hooks = true/' "$TOML"
-  else
-    sed -i 's/^codex_hooks.*=.*false/codex_hooks = true/' "$TOML"
-  fi
-  echo "  [ok] flipped codex_hooks to true in config.toml"
-elif [ -f "$TOML" ] && grep -q "^\[features\]" "$TOML" 2>/dev/null; then
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' '/^\[features\]/a\
-codex_hooks = true' "$TOML"
-  else
-    sed -i '/^\[features\]/a codex_hooks = true' "$TOML"
-  fi
-  echo "  [ok] added codex_hooks = true to [features] section"
-else
-  printf '\n[features]\ncodex_hooks = true\n' >> "$TOML"
-  echo "  [ok] created [features] section with codex_hooks = true"
-fi
+python3 -c "
+import os, re
+
+path = os.path.expanduser('$TOML')
+
+if not os.path.exists(path):
+    with open(path, 'w') as f:
+        f.write('[features]\ncodex_hooks = true\n')
+    print('  [ok] created config.toml with codex_hooks = true')
+else:
+    content = open(path).read()
+
+    if re.search(r'^codex_hooks\s*=\s*true', content, re.M):
+        print('  [ok] codex_hooks already enabled in config.toml')
+    elif re.search(r'^codex_hooks\s*=\s*false', content, re.M):
+        content = re.sub(r'^codex_hooks\s*=\s*false', 'codex_hooks = true', content, flags=re.M)
+        with open(path, 'w') as f: f.write(content)
+        print('  [ok] flipped codex_hooks to true in config.toml')
+    elif re.search(r'^\[features\]', content, re.M):
+        content = re.sub(r'^(\[features\])', r'\1\ncodex_hooks = true', content, flags=re.M)
+        with open(path, 'w') as f: f.write(content)
+        print('  [ok] added codex_hooks = true to [features] section')
+    else:
+        with open(path, 'a') as f: f.write('\n[features]\ncodex_hooks = true\n')
+        print('  [ok] appended [features] section with codex_hooks = true')
+" 2>&1
 
 # ---- Check cmux socket ----
 
